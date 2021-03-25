@@ -1,0 +1,58 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/02/ALU.hdl
+
+/**
+ * The ALU (Arithmetic Logic Unit).
+ * Computes one of the following functions:
+ * x+y, x-y, y-x, 0, 1, -1, x, y, -x, -y, !x, !y,
+ * x+1, y+1, x-1, y-1, x&y, x|y on two 16-bit inputs, 
+ * according to 6 input bits denoted zx,nx,zy,ny,f,no.
+ * In addition, the ALU computes two 1-bit outputs:
+ * if the ALU output == 0, zr is set to 1; otherwise zr is set to 0;
+ * if the ALU output < 0, ng is set to 1; otherwise ng is set to 0.
+ */
+
+CHIP ALU {
+    IN  
+        x[16], y[16],      
+        zx,
+        nx,
+        zy,
+        ny,
+        f,
+        no;
+
+    OUT 
+        out[16],
+        zr,
+        ng;
+
+    PARTS:
+    Mux16(a=x, b=false, sel=zx, out=o1);
+    Not16(in=o1, out=no1);
+    Mux16(a=o1, b=no1, sel=nx, out=xx);
+
+    Mux16(a=y, b=false, sel=zy, out=o2);
+    Not16(in=o2, out=no2);
+    Mux16(a=o2, b=no2, sel=ny, out=yy);
+
+    Add16(a=xx, b=yy, out=w1);
+    And16(a=xx, b=yy, out=w2);
+    Mux16(a=w2, b=w1, sel=f, out=w3);
+    Not16(in=w3, out=nw3);
+    Mux16(a=w3, b=nw3, sel=no, out=output);
+
+
+    And16(a=output, b=true, out[0..7]=p1); 
+    And16(a=output, b=true, out[8..15]=p2);
+    Or8Way(in=p1, out=or1);
+    Or8Way(in=p2, out=or2);
+    Or(a=or1, b=or2, out=or3);
+    Xor(a=or3, b=true, out=zr);
+
+    And16(a=output, b=true, out[15]=ng);
+
+    And16(a=output, b=true, out=out);
+}
