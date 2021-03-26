@@ -1,4 +1,4 @@
-#include "symbolHashTable.h"
+#include "SymbolHashTable.h"
 
 unsigned getHashVal(char *identifier){
     unsigned val = 0;
