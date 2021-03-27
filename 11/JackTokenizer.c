@@ -1,4 +1,5 @@
 #include "JackTokenizer.h"
+#include "FileOperation.h"
 
 JackTokenizer *tokenizerInit(FILE *fp_jack){
     static JackTokenizer this;
