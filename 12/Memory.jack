@@ -1,0 +1,158 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/12/Memory.jack
+
+/**
+ * This library provides two services: direct access to the computer's main
+ * memory (RAM), and allocation and recycling of memory blocks. The Hack RAM
+ * consists of 32,768 words, each holding a 16-bit binary number.
+ */ 
+class Memory {
+    static Array memory;
+    static Array freelist;
+    static Array heapend;
+    static int fragment_length; // fragment[0] = length of the current fragment
+    static int fragment_segnext; // fragment[1] = address of the next fragment
+    static int alloc_size;
+
+    /** Initializes the class. */
+    function void init() {
+        let memory = 0;
+        let freelist = 2048; // Heap segment starts at address 2048.
+        let heapend = 16384; // Heap segment ends at address 16383.
+        let fragment_length = 0;
+        let fragment_segnext = 1;
+        let alloc_size = -1;
+    }
+
+    /** Returns the RAM value at the given address. */
+    function int peek(int address) {
+        return memory[address];
+    }
+
+    /** Sets the RAM value at the given address to the given value. */
+    function void poke(int address, int value) {
+        let memory[address] = value;
+        return;
+    }
+
+    // one of the heuristic memory-allocation methods
+    function Array best_fit(int size) {
+        var Array best;
+        var Array prev;
+        var Array cur;
+        var int best_size;
+        var int cur_size;
+
+        let best = heapend;
+        let best_size = 16384 - 2048;
+        let cur = freelist;
+        let prev = null;
+
+        while(~(cur = null)) {
+            let cur_size = cur[fragment_length] - 1;
+            // update best fragment
+            if(~(cur_size < size) & (cur_size < best_size)) {
+                let best = prev;
+                let best_size = cur_size;
+            }
+            let prev = cur;
+            let cur = cur[fragment_segnext];
+        }
+        return best;
+    }
+
+    function Array allocate(Array new, int size) {
+        var Array next;
+        var int blocksize;
+
+        if(new[fragment_length] > size + 3) {
+            let next = new + size + 1;
+            let next[fragment_segnext] = new[fragment_segnext];
+            let next[fragment_length] = new[fragment_length] - (next - new);
+            let new = new + 1; // returned block
+            let new[alloc_size] = size + 1;
+        }
+        else {
+            let next = new[fragment_segnext];
+            let blocksize = new[fragment_length];
+            let new = new + 1; // returned block
+            let new[alloc_size] = size;
+        }
+        return next;
+    } 
+
+    /** Finds an available RAM block of the given size and returns
+     *  a reference to its base address. */
+    function int alloc(int size) {
+        var Array prev;
+        var Array new;
+        let prev = Memory.best_fit(size);
+        if(prev = heapend) {
+            let new = null;
+        }
+        else {
+            if(prev = null) {
+                let new = freelist;
+                let freelist = Memory.allocate(new, size);
+            }
+            else {
+                let new = prev[fragment_segnext];
+                let prev[fragment_segnext] = Memory.allocate(new, size);
+            }
+        }
+        return (new + 1); // fragment[1]
+    }
+
+    function Array find_prev(Array o) {
+        var Array fragment;
+        if(freelist > o) {
+            return null;
+        }
+
+        let fragment = freelist;
+        while(~(fragment[fragment_segnext] = null) & (fragment[fragment_segnext] < o)) {
+            let fragment = fragment[fragment_segnext];
+        }
+        return fragment;
+    }
+
+    /** De-allocates the given object (cast as an array) by making
+     *  it available for future allocations. */
+    function void deAlloc(Array o) {
+        var int alloc_size;
+        // prev -> deallocation fragment -> next
+        var Array prev;
+        var Array next;
+
+        let alloc_size = o[alloc_size];
+        let o = o - 1;
+        let prev = Memory.find_prev(o);
+
+        if(prev = null) {
+            let o[fragment_length] = alloc_size;
+            let o[fragment_segnext] = freelist;
+            let freelist = o;
+            let prev = o;
+        }
+        else {
+            if((prev + prev[fragment_length] = o)) {
+                let frev[fragment_length] = prev[fragment_length] + alloc_size;
+            }
+            else {
+                let o[fragment_length] = alloc_size;
+                let o[fragment_segnext] = prev[fragment_segnext];
+                let prev[fragment_segnext] = o;
+                let prev = o;
+            }
+        }
+
+        if(prev + prev[fragment_length] = prev[fragment_segnext]) {
+            let next = prev[fragment_segnext];
+            let prev[fragment_length] = prev[fragment_length] + next[fragment_length];
+            let prev[fragment_segnext] = next[fragment_segnext];
+        }
+        return;
+    }
+}
