@@ -1,0 +1,1 @@
+Bit, PC(Program Counter), RAM8, RAM64, Register
