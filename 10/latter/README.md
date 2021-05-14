@@ -10,6 +10,7 @@ identifier
 
 
 <h2>生成規則</h2>
+<h3>生成規則はEBNF記法による.</h3>
 
 class = 'class' className '{' classVarDec* subroutineDec* '}'  
 classVarDec = ('static' | 'field') type varName (',' varName)* ';'  
